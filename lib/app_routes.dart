@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:notes_app/splash_screen.dart';
-import 'package:notes_app/ui/add_note_screen.dart';
-import 'package:notes_app/ui/edit_note_screen.dart';
+import 'package:notes_app/ui/add_note_screens.dart';
+import 'package:notes_app/ui/edit_note_screens.dart';
 import 'package:notes_app/ui/note_screen.dart';
 
 class AppRoutes {
@@ -13,7 +13,7 @@ class AppRoutes {
   static Map<String, WidgetBuilder> getRoutes() => {
         ROUTE_SPLASH: (context) => SplashScreen(),
         ROUTE_HOME: (context) => NotesScreen(),
-        ROUTE_ADD_NOTE: (context) => NoteDetailScreen(),
-        ROUTE_EDIT_NOTE: (context) => NoteEditScreen(),
+        ROUTE_ADD_NOTE: (context) => AddNoteScreen(),
+        ROUTE_EDIT_NOTE: (context) => EditNoteScreen(),
       };
 }

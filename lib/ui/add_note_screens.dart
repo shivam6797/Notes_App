@@ -1,8 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:notes_app/db/db_helper.dart';
+import 'package:notes_app/model/note_model.dart';
 
-class NoteEditScreen extends StatelessWidget {
-  const NoteEditScreen({super.key});
+class AddNoteScreen extends StatefulWidget {
+  const AddNoteScreen({super.key});
+
+  @override
+  State<AddNoteScreen> createState() => _AddNoteScreenState();
+}
+
+class _AddNoteScreenState extends State<AddNoteScreen> {
+  TextEditingController titleController = TextEditingController();
+  TextEditingController descController = TextEditingController();
+  DbHelper? mDb;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    mDb = ModalRoute.of(context)!.settings.arguments as DbHelper?;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +34,7 @@ class NoteEditScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                   InkWell(
+                  InkWell(
                     onTap: () {
                       Navigator.pop(context);
                     },
@@ -33,8 +50,24 @@ class NoteEditScreen extends StatelessWidget {
                           size: 16, color: Colors.white),
                     ),
                   ),
-                  Container(
-                     height: 40,
+                  GestureDetector(
+                    onTap: () async {
+                      bool check = await mDb!.addNote(
+                        newNote: NoteModel(
+                          nTitle: titleController.text,
+                          nDesc: descController.text,
+                          nCreatedAt:
+                              DateTime.now().millisecondsSinceEpoch.toString(),
+                        ),
+                      );
+                      if (check) {
+                        titleController.clear();
+                        descController.clear();
+                        Navigator.pop(context, true);
+                      }
+                    },
+                    child: Container(
+                      height: 40,
                       width: 70,
                       alignment: Alignment.center,
                       margin: EdgeInsets.only(right: 5, top: 10, bottom: 5),
@@ -42,21 +75,21 @@ class NoteEditScreen extends StatelessWidget {
                         color: Color(0xff3b3b3b),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                    child: const Text(
-                      "Save",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontFamily: 'Nunito',
+                      child: const Text(
+                        "Save",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontFamily: 'Nunito',
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
-
               const SizedBox(height: 20),
-
               TextField(
+                controller: titleController,
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -73,11 +106,10 @@ class NoteEditScreen extends StatelessWidget {
                   border: InputBorder.none,
                 ),
               ),
-
               const SizedBox(height: 10),
-
               Expanded(
                 child: TextField(
+                  controller: descController,
                   style: const TextStyle(
                     fontSize: 16,
                     color: Colors.white,
