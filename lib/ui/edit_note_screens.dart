@@ -1,9 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:notes_app/app_routes.dart';
+import 'package:notes_app/model/note_model.dart';
+import 'package:notes_app/provider/db_provider.dart';
+import 'package:provider/provider.dart';
 
-class EditNoteScreen extends StatelessWidget {
+class EditNoteScreen extends StatefulWidget {
   const EditNoteScreen({super.key});
+
+  @override
+  State<EditNoteScreen> createState() => _EditNoteScreenState();
+}
+
+class _EditNoteScreenState extends State<EditNoteScreen> {
+  TextEditingController titleController = TextEditingController();
+  TextEditingController descController = TextEditingController();
+  int? noteId;
+  String formattedDate = "";
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final args = ModalRoute.of(context)?.settings.arguments as Map?;
+    if (args != null) {
+      noteId = int.tryParse(args['id'].toString());
+      titleController.text = args['title'] ?? '';
+      descController.text = args['desc'] ?? '';
+
+      // Convert date from milliseconds to readable format
+      if (args['date'] != null) {
+        int timestamp = int.tryParse(args['date'].toString()) ?? 0;
+        if (timestamp > 0) {
+          formattedDate = DateFormat.yMMMEd().format(
+            DateTime.fromMillisecondsSinceEpoch(timestamp),
+          );
+        }
+      }
+    }
+  }
+
+  void updateNote() {
+    if (noteId == null ||
+        titleController.text.isEmpty ||
+        descController.text.isEmpty) return;
+
+    final updatedNote = NoteModel(
+      nId: noteId!, // Int id
+      nTitle: titleController.text,
+      nDesc: descController.text,
+      nCreatedAt: DateTime.now().millisecondsSinceEpoch.toString(),
+    );
+
+    Provider.of<DbProvider>(context, listen: false).updateNote(updatedNote);
+    Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +88,7 @@ class EditNoteScreen extends StatelessWidget {
                   ),
                   InkWell(
                     onTap: () {
-                      Navigator.pushNamed(context, AppRoutes.ROUTE_EDIT_NOTE);
+                      updateNote();
                     },
                     child: Container(
                       height: 35,
@@ -52,50 +104,53 @@ class EditNoteScreen extends StatelessWidget {
                   ),
                 ],
               ),
-
               const SizedBox(height: 10),
-
-              const Text(
-                "Beautiful weather app UI concepts we wish existed",
-                style: TextStyle(
-                  fontSize: 26,
+              TextField(
+                controller: titleController,
+                style: const TextStyle(
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
-                  fontFamily: 'Nunito',
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              Text(
-                "May 21, 2020",
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Colors.grey[400],
                   fontFamily: 'Poppins',
-                  fontWeight: FontWeight.normal
+                ),
+                decoration: InputDecoration(
+                  hintText: "Title",
+                  hintStyle: TextStyle(
+                    fontSize: 24,
+                    color: Color(0xff939393),
+                    fontFamily: 'Nunito',
+                  ),
+                  border: InputBorder.none,
                 ),
               ),
-
+              const SizedBox(height: 10),
+              Text(
+                formattedDate.isNotEmpty ? formattedDate : "No Date Available",
+                style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.grey[400],
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.normal),
+              ),
               const SizedBox(height: 15),
-
               Expanded(
-                child: SingleChildScrollView(
-                  child: Text(
-                    "Who would have thought there could be so many creative ways to tell the temperature? "
-                    "Today's daily dose of design inspiration is all about the weather. In this collection "
-                    "of UI designs, we're sharing a handful of beautiful mobile weather app concepts that we "
-                    "wish existed in real life.\n\n"
-                    "Weather apps are quite the popular interface theme for designers to explore. But don’t "
-                    "let these effortlessly clean designs fool you. When it comes to the weather, there’s a lot "
-                    "of data designers have to arrange which can be quite a challenge. Regardless, it’s a great "
-                    "way to practice your UI skills.",
-                    style: TextStyle(
+                child: TextField(
+                  controller: descController,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                    fontFamily: 'Poppins',
+                  ),
+                  maxLines: null,
+                  keyboardType: TextInputType.multiline,
+                  decoration: InputDecoration(
+                    hintText: "Type something...",
+                    hintStyle: TextStyle(
                       fontSize: 16,
-                      color: Colors.white,
+                      color: Colors.grey[600],
                       fontFamily: 'Poppins',
-                      height: 2,
                     ),
+                    border: InputBorder.none,
                   ),
                 ),
               ),

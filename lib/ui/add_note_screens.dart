@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:notes_app/db/db_helper.dart';
 import 'package:notes_app/model/note_model.dart';
+import 'package:provider/provider.dart';
+import '../provider/db_provider.dart';
 
 class AddNoteScreen extends StatefulWidget {
   const AddNoteScreen({super.key});
@@ -13,14 +14,6 @@ class AddNoteScreen extends StatefulWidget {
 class _AddNoteScreenState extends State<AddNoteScreen> {
   TextEditingController titleController = TextEditingController();
   TextEditingController descController = TextEditingController();
-  DbHelper? mDb;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    mDb = ModalRoute.of(context)!.settings.arguments as DbHelper?;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,19 +45,20 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
                   ),
                   GestureDetector(
                     onTap: () async {
-                      bool check = await mDb!.addNote(
-                        newNote: NoteModel(
-                          nTitle: titleController.text,
-                          nDesc: descController.text,
-                          nCreatedAt:
-                              DateTime.now().millisecondsSinceEpoch.toString(),
-                        ),
-                      );
-                      if (check) {
-                        titleController.clear();
-                        descController.clear();
-                        Navigator.pop(context, true);
+                      // Add New Note
+                      if (titleController.text.isNotEmpty &&
+                          descController.text.isNotEmpty) {
+                        context.read<DbProvider>().addNote(
+                              NoteModel(
+                                nTitle: titleController.text,
+                                nDesc: descController.text,
+                                nCreatedAt: DateTime.now()
+                                    .millisecondsSinceEpoch
+                                    .toString(),
+                              ),
+                            );
                       }
+                      Navigator.pop(context);
                     },
                     child: Container(
                       height: 40,

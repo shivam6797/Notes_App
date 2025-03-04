@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
-
 import 'package:notes_app/app_routes.dart';
-import 'package:notes_app/db/db_helper.dart';
 import 'package:notes_app/model/note_model.dart';
+import 'package:provider/provider.dart';
+import '../provider/db_provider.dart';
 
 class NotesScreen extends StatefulWidget {
   const NotesScreen({super.key});
@@ -15,37 +15,24 @@ class NotesScreen extends StatefulWidget {
 }
 
 class _NotesScreenState extends State<NotesScreen> {
-  DbHelper? mDb;
   DateFormat df = DateFormat.yMMMEd();
   List<NoteModel> mData = [];
 
   final List<Color> noteColors = [
-    Color(0xFFee999c),
-    Color(0xFFffe083),
-    Color(0xFFdee676),
+    Color(0xFFFFAB91),
+    Color(0xFFFFCC80),
+    Color(0xFFE6EE9B),
     Color(0xFFA5D6A7),
-    Color(0xFF80ddec),
+    Color(0xFF80DEEA),
     Color(0xFFCF93D9),
-    Color(0xFFe77273),
-    Color(0xFFe57373),
+    Color(0xFFF48FB1),
+    Color(0xFFB0BEC5),
   ];
 
   @override
   void initState() {
     super.initState();
-    mDb = DbHelper.getInstance();
-    getAllNotes();
-  }
-
-  void getAllNotes() async {
-    mData = await mDb!.fetchAllNotes();
-    setState(() {});
-  }
-
-  void deleteNote(int index) async {
-    await mDb!.deleteNote(mData[index].nId!);
-    mData.removeAt(index);
-    setState(() {});
+    Provider.of<DbProvider>(context, listen: false).fetchInitialData();
   }
 
   @override
@@ -59,58 +46,57 @@ class _NotesScreenState extends State<NotesScreen> {
         backgroundColor: Colors.black,
         elevation: 0,
         actions: [
-          Container(
-            height: 35,
-            width: 45,
-            margin: EdgeInsets.only(right: 15, top: 10, bottom: 5),
-            decoration: BoxDecoration(
-              color: Color(0xff1c2834),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(FontAwesomeIcons.search,
-                size: 18, color: Colors.white),
+          IconButton(
+            icon: Icon(FontAwesomeIcons.search, color: Colors.white),
+            onPressed: () {},
           ),
         ],
       ),
-      body: mData.isNotEmpty
-          ? Padding(
-              padding: const EdgeInsets.all(10),
-              child: StaggeredGrid.count(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                children: List.generate(mData.length, (index) {
-                  var eachDate = DateTime.fromMillisecondsSinceEpoch(
-                      int.parse(mData[index].nCreatedAt));
+      body: Consumer<DbProvider>(builder: (_, provider, __) {
+        mData = provider.getAllNotes();
+        return Padding(
+          padding: const EdgeInsets.all(10),
+          child: MasonryGridView.builder(
+            gridDelegate: SliverSimpleGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2),
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            itemCount: mData.length,
+            itemBuilder: (context, index) {
+              var eachDate = DateTime.fromMillisecondsSinceEpoch(
+                  int.parse(mData[index].nCreatedAt));
 
-                  return GestureDetector(
-                    onLongPress: () => showDeleteBottomSheet(index),
-                    child: NoteCard(
-                      title: mData[index].nTitle,
-                      desc: mData[index].nDesc,
-                      date: df.format(eachDate),
-                      color: noteColors[index % noteColors.length],
-                      isLarge: index == 2,
-                    ),
+              bool isLarge = (index % 4 == 0 || index == 1);
+
+              return GestureDetector(
+                onLongPress: () => showDeleteBottomSheet(index),
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.ROUTE_EDIT_NOTE,
+                    arguments: {
+                      "id": mData[index].nId.toString(),
+                      "title": mData[index].nTitle,
+                      "desc": mData[index].nDesc,
+                       'date': mData[index].nCreatedAt,
+                    },
                   );
-                }),
-              ),
-            )
-          : Center(
-              child: CircularProgressIndicator(
-                backgroundColor: Colors.white,
-                color: Colors.black.withOpacity(0.6),
-                strokeWidth: 2,
-              ),
-            ),
+                },
+                child: NoteCard(
+                  title: mData[index].nTitle,
+                  desc: mData[index].nDesc,
+                  date: df.format(eachDate),
+                  color: noteColors[index % noteColors.length],
+                  isLarge: isLarge,
+                ),
+              );
+            },
+          ),
+        );
+      }),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          bool? isUpdated = await Navigator.pushNamed(
-              context, AppRoutes.ROUTE_ADD_NOTE,
-              arguments: mDb) as bool?;
-          if (isUpdated == true) {
-            getAllNotes();
-          }
+          Navigator.pushNamed(context, AppRoutes.ROUTE_ADD_NOTE);
         },
         backgroundColor: Color(0xff1c2834),
         child: const Icon(Icons.add, color: Colors.white),
@@ -168,7 +154,9 @@ class _NotesScreenState extends State<NotesScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        deleteNote(index);
+                        context
+                            .read<DbProvider>()
+                            .deleteNote(mData[index].nId!);
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(
@@ -231,57 +219,49 @@ class NoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StaggeredGridTile.count(
-      crossAxisCellCount: isLarge ? 2 : 1,
-      mainAxisCellCount: isLarge ? 1.1 : 1,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (title.isNotEmpty)
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: isLarge ? 18 : 16,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'Nunito',
-                  color: Colors.black,
-                ),
-                maxLines: isLarge ? 3 : 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            if (title.isNotEmpty) SizedBox(height: 5),
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (title.isNotEmpty)
             Text(
-              desc,
+              title,
               style: TextStyle(
-                color: Colors.black.withOpacity(0.9),
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                fontFamily: "Poppins",
+                fontSize: isLarge ? 18 : 16,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Nunito',
+                color: Colors.black,
               ),
-              maxLines: 3,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            SizedBox(height: 10),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: Text(
-                date,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.black.withOpacity(0.9),
-                  fontFamily: 'Poppins',
-                ),
-              ),
+          if (title.isNotEmpty) SizedBox(height: 5),
+          Text(
+            desc,
+            style: TextStyle(
+              fontSize: isLarge ? 15 : 13,
+              color: Colors.black.withOpacity(0.8),
+              fontFamily: 'Poppins',
             ),
-          ],
-        ),
+            maxLines: isLarge ? 5 : 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+          SizedBox(height: 10),
+          Text(
+            date,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.black.withOpacity(0.7),
+              fontFamily: 'Poppins',
+            ),
+          ),
+        ],
       ),
     );
   }
