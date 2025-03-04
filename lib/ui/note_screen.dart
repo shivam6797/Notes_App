@@ -6,6 +6,7 @@ import 'package:notes_app/app_routes.dart';
 import 'package:notes_app/model/note_model.dart';
 import 'package:provider/provider.dart';
 import '../provider/db_provider.dart';
+import '../utils/colors.dart';
 
 class NotesScreen extends StatefulWidget {
   const NotesScreen({super.key});
@@ -54,45 +55,53 @@ class _NotesScreenState extends State<NotesScreen> {
       ),
       body: Consumer<DbProvider>(builder: (_, provider, __) {
         mData = provider.getAllNotes();
-        return Padding(
-          padding: const EdgeInsets.all(10),
-          child: MasonryGridView.builder(
-            gridDelegate: SliverSimpleGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            itemCount: mData.length,
-            itemBuilder: (context, index) {
-              var eachDate = DateTime.fromMillisecondsSinceEpoch(
-                  int.parse(mData[index].nCreatedAt));
+        return mData.isEmpty
+            ? Center(
+                child: CircularProgressIndicator(
+                  backgroundColor: AppColors.white,
+                  color: AppColors.darkblack.withOpacity(0.6),
+                  strokeWidth: 2,
+                ),
+              )
+            : Padding(
+                padding: const EdgeInsets.all(10),
+                child: MasonryGridView.builder(
+                  gridDelegate: SliverSimpleGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2),
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  itemCount: mData.length,
+                  itemBuilder: (context, index) {
+                    var eachDate = DateTime.fromMillisecondsSinceEpoch(
+                        int.parse(mData[index].nCreatedAt));
 
-              bool isLarge = (index % 4 == 0 || index == 1);
+                    bool isLarge = (index % 4 == 0 || index == 1);
 
-              return GestureDetector(
-                onLongPress: () => showDeleteBottomSheet(index),
-                onTap: () {
-                  Navigator.pushNamed(
-                    context,
-                    AppRoutes.ROUTE_EDIT_NOTE,
-                    arguments: {
-                      "id": mData[index].nId.toString(),
-                      "title": mData[index].nTitle,
-                      "desc": mData[index].nDesc,
-                       'date': mData[index].nCreatedAt,
-                    },
-                  );
-                },
-                child: NoteCard(
-                  title: mData[index].nTitle,
-                  desc: mData[index].nDesc,
-                  date: df.format(eachDate),
-                  color: noteColors[index % noteColors.length],
-                  isLarge: isLarge,
+                    return GestureDetector(
+                      onLongPress: () => showDeleteBottomSheet(index),
+                      onTap: () {
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.ROUTE_EDIT_NOTE,
+                          arguments: {
+                            "id": mData[index].nId.toString(),
+                            "title": mData[index].nTitle,
+                            "desc": mData[index].nDesc,
+                            'date': mData[index].nCreatedAt,
+                          },
+                        );
+                      },
+                      child: NoteCard(
+                        title: mData[index].nTitle,
+                        desc: mData[index].nDesc,
+                        date: df.format(eachDate),
+                        color: noteColors[index % noteColors.length],
+                        isLarge: isLarge,
+                      ),
+                    );
+                  },
                 ),
               );
-            },
-          ),
-        );
       }),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
